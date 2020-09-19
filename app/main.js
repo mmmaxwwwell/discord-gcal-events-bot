@@ -1,6 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
+const moment = require('moment')
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -10,6 +11,39 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 
 const TOKEN_PATH = '../secrets/token.json';
 const CREDENTIALS_PATH = '../secrets/credentials.json'
+var events = {}
+
+let alerts = [
+  //1 week
+  {
+    ms: 1000 * 60 * 60 * 24 * 7, 
+    name: "week", 
+    display: "in one week", 
+    momentUnit: "weeks", 
+    momentValue: 1
+  },
+  {
+    ms: 1000 * 60 * 60 * 24, 
+    name: "day", 
+    display: "in one day",
+    momentUnit: "days",
+    momentValue: 1
+  },
+  {
+    ms: 1000 * 60 * 60 , 
+    name: "hour", 
+    display: "in one hour", 
+    momentUnit: "hours", 
+    momentValue: 1
+  },
+  {
+    ms: 0, 
+    name: "now", 
+    display: "now", 
+    momentUnit: "minutes", 
+    momentValue: 0
+  }
+]
 
 fs.readFile(CREDENTIALS_PATH, (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
@@ -77,16 +111,44 @@ function listEvents(auth) {
     orderBy: 'startTime',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
-    const events = res.data.items;
-    if (events.length) {
-      console.log('Upcoming 10 events:');
-      events.map((event, i) => {
-        const start = event.start.dateTime || event.start.date;
-        console.log(`${start} - ${event.summary}`);
-      });
-    } else {
-      console.log('No upcoming events found.');
+    for (var event of res.data.items){
+      event.alerts = {}
+      let start = Date.parse(event.start.dateTime)
+      for(var alert of alerts){
+        let alertTime = moment(start).subtract(alert.momentValue, alert.momentUnit)
+        let msUntil = alertTime.valueOf() - new Date().valueOf() 
+        if(msUntil > 0){
+          console.log({alert: alert.display, msUntil})
+          event.alerts[alert.name] = setTimeout(sendNotification, msUntil, event, alert)
+        }
+      }
     }
   });
 }
 
+const sendNotification = (event, alert) => {
+  console.log({event, alert})
+}
+
+const watch = async (auth) => {
+  const res = await calendar.acl.watch({
+        // Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the "primary" keyword.
+        calendarId: process.env.CALENDAR_ID,
+        // Request body metadata
+        requestBody: {
+          // request body parameters
+          // {
+          //   "address": "my_address",
+          //   "expiration": "my_expiration",
+          //   "id": "my_id",
+          //   "kind": "my_kind",
+          //   "params": {},
+          //   "payload": false,
+          //   "resourceId": "my_resourceId",
+          //   "resourceUri": "my_resourceUri",
+          //   "token": "my_token",
+          //   "type": "my_type"
+          // }
+        },
+      });
+}
