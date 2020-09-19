@@ -118,11 +118,13 @@ function listEvents(auth) {
         let alertTime = moment(start).subtract(alert.momentValue, alert.momentUnit)
         let msUntil = alertTime.valueOf() - new Date().valueOf() 
         if(msUntil > 0){
-          console.log({alert: alert.display, msUntil})
+          // console.log({alert: alert.display, msUntil})
           event.alerts[alert.name] = setTimeout(sendNotification, msUntil, event, alert)
         }
       }
+      events[event.id] = event
     }
+    console.log(events)
   });
 }
 
