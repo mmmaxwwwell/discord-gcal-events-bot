@@ -1,0 +1,11 @@
+{
+  "name": "app",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "googleapis": "^39.2.0",
+    "nodemon": "^2.0.4"
+  },
+  "scripts": {
+    "dev": "nodemon -x node -r dotenv/config main.js"
+  }
+}
