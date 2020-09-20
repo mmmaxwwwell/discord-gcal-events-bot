@@ -1,6 +1,7 @@
 version: '3'
 services:
   discord-gcal-events-bot:
+    #image: mmmaxwwwell/discord-gcal-events-bot:latest
     build:
       context: .
       dockerfile: Dockerfile
