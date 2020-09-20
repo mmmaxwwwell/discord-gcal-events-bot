@@ -1,0 +1,12 @@
+version: '3'
+services:
+  discord-gcal-events-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: discord-gcal-events-bot
+    restart: unless-stopped
+    volumes:
+      - ./secrets:/home/node/secrets
+    env_file:
+      - ./secrets/.env
