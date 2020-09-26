@@ -65,8 +65,9 @@ const trackEvents = (newEvents) => {
         eventUpdated: events[event.id].updated != event.updated
       })
       //event we already have indexed has changed
-      //tear down timers and re-create
-      events[event.id] = createAlerts(destroyAlerts(event))
+      //tear down timers and re-create'
+      destroyAlerts(events[event.id])
+      events[event.id] = createAlerts(event)
     }else{
       console.log({event:'existing-event', eventId: event.id})
     }
@@ -76,7 +77,8 @@ const trackEvents = (newEvents) => {
     let newEventIds = newEvents.map(event => event.id)
     for(var eventId of Object.keys(events)){
       if(!newEventIds.includes(eventId)){
-        destroyAlerts(event)
+        console.log({event:'orphaned-event', eventId})
+        destroyAlerts(events[event.id])
         delete events[eventId]
       }
     }
@@ -85,16 +87,18 @@ const trackEvents = (newEvents) => {
 
 const destroyAlerts = (event) => {
   if(event.alerts !== undefined)
-    for(var alertId of Object.keys((events[event.id] || {alerts: {}}).alerts)){
+    for(var alertId of Object.keys(events[event.id].alerts)){
       if(event.alerts[alertId] !== undefined) {
         console.log({
           event:'destroy-alert',
           eventId: event.id,
-          alertName: alert.name
+          alertName: alertId
         })
         clearTimeout(event.alerts[alertId])
       }
     }
+  else
+    console.log({event: 'event-alerts-undefined', event})
   return event
 }
 
@@ -104,7 +108,6 @@ const createAlerts = (event) => {
     let alertTime = moment(Date.parse(event[alert.from].dateTime)).subtract(alert.momentValue, alert.momentUnit)
     let msUntil = alertTime.valueOf() - new Date().valueOf() 
     if(msUntil > 0){
-      // console.log({alert: alert.display, msUntil})
       event.alerts[alert.name] = setTimeout(sendNotification, msUntil, event, alert)
       console.log({
         event:'create-alert', 
