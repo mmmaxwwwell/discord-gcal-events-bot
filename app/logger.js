@@ -1,6 +1,6 @@
 const DEBUG = process.env.DEBUG.toLowerCase() === "true"
-const log = (event, rest) => {
+const log = (args) => {
   if(DEBUG)
-    console.log({event, ...rest})
+    console.log(args)
 }
 module.exports = { log }

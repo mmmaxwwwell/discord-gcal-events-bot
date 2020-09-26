@@ -1,6 +1,5 @@
 const moment = require('moment')
 const console = require('./logger')
-const tz = require('moment-timezone')
 
 let callbacks = []
 var events = {}
@@ -50,18 +49,26 @@ let alerts = [
 const trackEvents = (newEvents) => {
   for (var event of newEvents){
     if(events[event.id] === undefined){
+      console.log({event: 'new-event', eventId: event.id})
       //new event
       events[event.id] = createAlerts(event)
 
-      const nowMinus15 = moment(new Date()).subtract(15, 'minutes')
+      const nowMinus15 = moment(new Date()).subtract(parseInt(process.env.REFRESH_INTERVAL), 'minutes')
       const created = moment(new Date(event.created))
 
       if(nowMinus15.isBefore(created))
         sendNotification(event)
     } else if(Object.keys(events).includes(event.id) && events[event.id].updated != event.updated){
+      console.log({
+        event: 'updated-event', 
+        eventsInclude: Object.keys(events).includes(event.id),
+        eventUpdated: events[event.id].updated != event.updated
+      })
       //event we already have indexed has changed
       //tear down timers and re-create
       events[event.id] = createAlerts(destroyAlerts(event))
+    }else{
+      console.log({event:'existing-event', eventId: event.id})
     }
   
     //find any events that were deleted or we aren't tracking anymore
@@ -77,13 +84,18 @@ const trackEvents = (newEvents) => {
 }
 
 const destroyAlerts = (event) => {
-  
   if(event.alerts !== undefined)
     for(var alertId of Object.keys((events[event.id] || {alerts: {}}).alerts)){
-      if(event.alerts[alertId] !== undefined) 
+      if(event.alerts[alertId] !== undefined) {
+        console.log({
+          event:'destroy-alert',
+          eventId: event.id,
+          alertName: alert.name
+        })
         clearTimeout(event.alerts[alertId])
+      }
     }
-    return event
+  return event
 }
 
 const createAlerts = (event) => {
@@ -94,10 +106,16 @@ const createAlerts = (event) => {
     if(msUntil > 0){
       // console.log({alert: alert.display, msUntil})
       event.alerts[alert.name] = setTimeout(sendNotification, msUntil, event, alert)
+      console.log({
+        event:'create-alert', 
+        eventId: event.id, 
+        alertName: alert.name 
+      })
       if(alert.testMessage)
         sendNotification(event, alert)
     }
   }
+  return event
 }
 
 const sendNotification = async (event, alert) => {
@@ -111,7 +129,7 @@ const generateMessage = (event, alert) => {
   let start = moment(event.start.dateTime).tz("America/New_York")
   let copyToMyCalendarURL = `https://calendar.google.com/calendar/u/0/r/eventedit/copy/${event.htmlLink.split('=')[1]}`
   
-  const nowMinus15 = moment(new Date()).subtract(15, 'minutes')
+  const nowMinus15 = moment(new Date()).subtract(parseInt(process.env.REFRESH_INTERVAL), 'minutes')
   const created = moment(new Date(event.created))
 
   let introPart
@@ -129,6 +147,7 @@ const generateMessage = (event, alert) => {
       description: `🗓 [${process.env.ORG_NAME} Events Calendar](${process.env.CALENDAR_LINK})\r\n📅  [Source Event](${event.htmlLink})\r\n📩[Copy to Your Calendar](${copyToMyCalendarURL})`
     }
   ]
+  console.log({event:'generated-message', eventId: event.id})
   return {message, embeds}
 }
 

@@ -11,7 +11,7 @@ const update = async () => {
   try {
     eventTracker.registerCallback(webhook.sendMessage)
     update()
-    setInterval(update, 1000 * 60 * 15)
+    setInterval(update, 1000 * 60 * parseInt(process.env.REFRESH_INTERVAL))
   } catch (error) {
       console.log({event: 'unhandled-exception', error})
   }
