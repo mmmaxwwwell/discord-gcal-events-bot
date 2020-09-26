@@ -1,5 +1,6 @@
 const moment = require('moment')
 const console = require('./logger')
+const tz = require('moment-timezone')
 
 let callbacks = []
 var events = {}
@@ -57,17 +58,21 @@ const trackEvents = (newEvents) => {
       const created = moment(new Date(event.created))
 
       if(nowMinus15.isBefore(created))
-        sendNotification(event)
+        sendNotification(event, 'dummy-value', 'new')
+
     } else if(Object.keys(events).includes(event.id) && events[event.id].updated != event.updated){
       console.log({
         event: 'updated-event', 
         eventsInclude: Object.keys(events).includes(event.id),
         eventUpdated: events[event.id].updated != event.updated
       })
+
       //event we already have indexed has changed
       //tear down timers and re-create'
+      
       destroyAlerts(events[event.id])
       events[event.id] = createAlerts(event)
+      sendNotification(event, 'dummy-value', 'update')
     }else{
       console.log({event:'existing-event', eventId: event.id})
     }
@@ -114,33 +119,32 @@ const createAlerts = (event) => {
         eventId: event.id, 
         alertName: alert.name 
       })
-      if(alert.testMessage)
-        sendNotification(event, alert)
     }
   }
   return event
 }
 
-const sendNotification = async (event, alert) => {
-  const message = generateMessage(event, alert)
+const sendNotification = async (event, alert, messageType) => {
+  const message = generateMessage(event, alert, messageType)
   for(callback of callbacks){
     callback(message)
   }
 }
 
-const generateMessage = (event, alert) => {
+const generateMessage = (event, alert, messageType) => {
   let start = moment(event.start.dateTime).tz("America/New_York")
   let copyToMyCalendarURL = `https://calendar.google.com/calendar/u/0/r/eventedit/copy/${event.htmlLink.split('=')[1]}`
   
-  const nowMinus15 = moment(new Date()).subtract(parseInt(process.env.REFRESH_INTERVAL), 'minutes')
-  const created = moment(new Date(event.created))
-
   let introPart
-  if(nowMinus15.isBefore(created)){
-    //newly scheduled event
-    introPart = `A new event \"${event.summary}\" was created!`
-  }else{
-    introPart = `The event \"${event.summary}\" is starting ${alert.display}!`
+  switch(messageType){
+    case 'new':
+      introPart = `A new event \"${event.summary}\" was created!`
+    break
+    case 'update':
+      introPart = `The event \"${event.summary}\" was updated.`
+    break
+    default:
+      introPart = `The event \"${event.summary}\" is starting ${alert.display}!`
   }
   let message = `📢\r\n${introPart}\r\n\r\n${event.description || ""}\r\n\r\n`
   const embeds = [
