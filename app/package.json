@@ -5,7 +5,7 @@
     "dotenv": "^8.2.0",
     "googleapis": "^39.2.0",
     "moment": "^2.28.0",
-    "moment-timezone": "^0.5.31",
+    "moment-timezone": "^0.5.35",
     "nodemon": "^2.0.4"
   },
   "scripts": {
